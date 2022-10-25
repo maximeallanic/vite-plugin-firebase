@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "release": "npm install && npm run build && npm publish --access public"
+    "release": "npm install && npm version patch && npm run build && npm publish --access public"
   },
   "engines": {
     "node": ">=12.0.0"

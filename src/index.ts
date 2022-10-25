@@ -61,7 +61,7 @@ export default function firebasePlugin({ projectId, projectName = projectId, roo
       const config = Config.load(options);
 
       setupLoggers();
-      shutdownWhenKilled(options);
+
 
       // @ts-ignore
       options.config = config;
@@ -78,10 +78,17 @@ export default function firebasePlugin({ projectId, projectName = projectId, roo
           JSON.stringify(settings)
         );
       }
-      await startAll(options, showUI);
+
+
+
 
       // patch server.close to close emulators as well
       const { close } = server;
+
+      shutdownWhenKilled(options).then(() => {
+        return close();
+      });
+
       server.close = async () => {
         async function closeFirebase() {
           await exportOnExit(options);
@@ -90,6 +97,8 @@ export default function firebasePlugin({ projectId, projectName = projectId, roo
 
         await Promise.all([close(), closeFirebase()]);
       }
+
+      await startAll(options, showUI);
     },
 
   };
