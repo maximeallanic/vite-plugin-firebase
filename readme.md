@@ -35,7 +35,9 @@ export default {
     // whether to materialize (write on disk) `.runtimeconfig.json` for functions emulator (defaults to `false`)
     materializeConfig: true,
     // emulator targets (defaults to `['hosting', 'functions']`)
-    targets: ['hosting']
+    targets: ['hosting'],
+    import: './firebase-export',
+    exportOnExit: './firebase-export'
   })]
 }
 ```

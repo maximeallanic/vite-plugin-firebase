@@ -12,38 +12,37 @@ import { setActiveAccount } from 'firebase-tools/lib/auth.js';
 import {
   materializeAll,
   ensureApi,
-// @ts-ignore
+  // @ts-ignore
 } from 'firebase-tools/lib/functionsConfig.js';
 // @ts-ignore
 import { requireAuth } from 'firebase-tools/lib/requireAuth.js';
 import {
   startAll,
   cleanShutdown,
-// @ts-ignore
+  exportOnExit
+  // @ts-ignore
 } from 'firebase-tools/lib/emulator/controller.js';
 // @ts-ignore
 import { shutdownWhenKilled } from 'firebase-tools/lib/emulator/commandUtils.js';
 
 export interface FirebasePluginOptions {
   projectId: string | ((server: ViteDevServer) => string)
-  projectName: string | ((server: ViteDevServer) => string)
+  projectName?: string | ((server: ViteDevServer) => string)
   root?: string
   materializeConfig?: boolean
+  exportPath?: string
   targets: string[]
   showUI: boolean
 }
 
-export default function firebasePlugin({projectId, projectName = projectId, root, materializeConfig, targets = ['hosting', 'functions'], showUI = false}: FirebasePluginOptions) {
+export default function firebasePlugin({ projectId, projectName = projectId, root, materializeConfig, targets = ['hosting', 'functions'], showUI = false, exportPath }: FirebasePluginOptions) {
   return {
     name: "vite:firebase",
     async configureServer(server: ViteDevServer) {
       if (server.config.command !== 'serve') return;
       const projectDir = root || server.config.root;
-      if (!process.env.IS_FIREBASE_CLI) {
-        process.env.IS_FIREBASE_CLI = 'true';
-        setupLoggers();
-        shutdownWhenKilled({});
-      }
+      process.env.IS_FIREBASE_CLI = 'true';
+
       if (typeof projectId !== 'string') projectId = projectId(server);
       if (typeof projectName !== 'string') projectName = projectName(server);
       const account = getProjectDefaultAccount(projectDir);
@@ -54,9 +53,16 @@ export default function firebasePlugin({projectId, projectName = projectId, root
         nonInteractive: true,
         account,
         only: targets.join(','),
-        targets
+        targets,
+        import: exportPath,
+        exportOnExit: exportPath
       };
+
       const config = Config.load(options);
+
+      setupLoggers();
+      shutdownWhenKilled(options);
+
       // @ts-ignore
       options.config = config;
       if (account) {
@@ -77,8 +83,15 @@ export default function firebasePlugin({projectId, projectName = projectId, root
       // patch server.close to close emulators as well
       const { close } = server;
       server.close = async () => {
-        await Promise.all([close(), cleanShutdown()]);
+        async function closeFirebase() {
+          await exportOnExit(options);
+          await cleanShutdown();
+        }
+
+        await Promise.all([close(), closeFirebase()]);
       }
     },
+
   };
 }
+
