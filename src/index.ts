@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import { ViteDevServer } from "vite";
 // @ts-ignore
 import { setupLoggers } from 'firebase-tools/lib/utils.js';
@@ -9,11 +7,7 @@ import { getProjectDefaultAccount } from 'firebase-tools/lib/auth.js';
 import { Config } from 'firebase-tools/lib/config.js';
 // @ts-ignore
 import { setActiveAccount } from 'firebase-tools/lib/auth.js';
-import {
-  materializeAll,
-  ensureApi,
-  // @ts-ignore
-} from 'firebase-tools/lib/functionsConfig.js';
+
 // @ts-ignore
 import { requireAuth } from 'firebase-tools/lib/requireAuth.js';
 import {
@@ -65,22 +59,10 @@ export default function firebasePlugin({ projectId, projectName = projectId, roo
 
       // @ts-ignore
       options.config = config;
+
       if (account) {
         setActiveAccount(options, account);
       }
-      if (materializeConfig) {
-        await requireAuth(options);
-        await ensureApi(options);
-        const settings = await materializeAll(projectId);
-        const functionsDir = config.data.functions.source;
-        await fs.promises.writeFile(
-          path.join(functionsDir, '.runtimeconfig.json'),
-          JSON.stringify(settings)
-        );
-      }
-
-
-
 
       // patch server.close to close emulators as well
       const { close } = server;
